@@ -10,10 +10,7 @@
 (defprotocol Scraper
   (scrape-single-page [this url driver]))
 
-(def driver (create-driver))
-(.get driver "https://www.morganlewis.com/our-people-results?pagenum=1&sortingqs=Last%20name&pagesize=500&loadCategories=true&param_sitecontentcategory=OUR%20PEOPLE&")
-
-(defrecord FirmWebsite [root-url names-xpath urls-xpath positions-xpath emails-xpath
+(defrecord FirmWebsite [names-xpath urls-xpath positions-xpath emails-xpath
                         names-function emails-function positions-function urls-function])
 
 (extend-protocol Scraper
@@ -33,7 +30,7 @@
               (merge name (assoc {} :url url :position position :email email)))
             names urls positions emails))))
 
-(defn- fix-name [the-name]
+(defn- fix-lastname-firstname [the-name]
   (let [name-fixer-regex #"((\w+)( \w+)?)(?:, )(\w+)((?: )(\w))?"
         [last-name _ _ first-name _ middle-initial] (rest (re-find name-fixer-regex the-name))]
     {:last-name last-name :first-name first-name :middle-initial middle-initial}))
@@ -42,15 +39,65 @@
   (last (re-find #"(?:mailto:)(.*)" email)))
 
 (def latham (map->FirmWebsite
-             {:root-url "https://www.lw.com/attorneyBioSearch.aspx?titleGroupName=Associate&peopleViewMode=ListView&esmode=1"
-              :names-xpath "//table[@id='PeopleList']/tbody/tr/td[1]"
+             {:names-xpath "//table[@id='PeopleList']/tbody/tr/td[1]"
               :positions-xpath "//table[@id='PeopleList']/tbody/tr/td[2]"
               :emails-xpath "//table[@id='PeopleList']/tbody/tr/td[3]/a"
               :urls-xpath "//table[@id='PeopleList']/tbody/tr/td[1]/a"
-              :names-function fix-name
+              :names-function fix-lastname-firstname
               :emails-function fix-email
               :positions-function identity
               :urls-function identity}))
+
+(defn- fix-firstname-lastname [the-name]
+  (let [re-result (map first (re-seq #"(\w+(-\w+)?)" the-name))
+        result {:first-name (first re-result)}]
+    (if (= 2 (count re-result))
+      (assoc result :last-name (last re-result) :middle-initial nil)
+      (if (= 1 (count (second re-result)))
+        (assoc result :last-name (last re-result) :middle-initial (second re-result))
+        (assoc result :last-name (clojure.string/join " " (rest re-result)) :middle-initial nil)))))
+
+
+(defn- bm-email-fixer [email]
+  email)
+  ;; (str
+  ;;  (clojure.string/lower-case
+  ;;   (re-find #"(?<=').*?(?=')" email))
+  ;;  "@bakermckenzie.com"))
+
+(def baker-mckenzie (map->FirmWebsite
+                     {:names-xpath "//div[@class='atty_name']"
+                      :positions-xpath "//div[@class='atty_title']"
+                      :urls-xpath "//div[@class='atty_name']"
+                      :emails-xpath "//div[@class='atty_email']"
+                      :names-function fix-firstname-lastname
+                      :emails-function bm-email-fixer
+                      :positions-function identity
+                      :urls-function identity}))
+
+(.getText (.findElementByXPath driver "//div[@class='atty_name']"))
+
+
+(re-seq #"(\w+(-\w+)?)" "Narendra Acharya")
+(re-seq #"(\w+(-\w+)?)" "Kathleen A. Acharya")
+(re-seq #"(\w+(-\w+)?)" "Christine Agnew Acharya")
+(re-seq #"(\w+(-\w+)?)" "Bogdan-Alexandru Acharya")
+
+
+(deftest fix-firstname-lastname-test
+  (is (= (fix-firstname-lastname "Narendra Acharya")
+         {:last-name "Acharya" :first-name "Narendra" :middle-initial nil}))
+  (is (= (fix-firstname-lastname "Kathleen A. Agbayani")
+         {:last-name "Agbayani" :first-name "Kathleen" :middle-initial "A"}))
+  (is (= (fix-firstname-lastname "Christine Agnew Sloan")
+         {:last-name "Agnew Sloan" :first-name "Christine" :middle-initial nil}))
+  (is (= (fix-firstname-lastname "Bogdan-Alexandru Albu")
+         {:last-name "Albu" :first-name "Bogdan-Alexandru" :middle-initial nil}))
+  (is (= (fix-firstname-lastname "Fritz Boot-Strap")
+         {:last-name "Boot-Strap" :first-name "Fritz" :middle-initial nil}))
+  (is (= (fix-firstname-lastname "Cinna-Bon Fiddle-Sticks")
+         {:last-name "Fiddle-Sticks" :first-name "Cinna-Bon" :middle-initial nil})))
+
 
 ;; (def morgan-lewis (map->FirmWebsite
 ;;                    {:root-url "https://www.morganlewis.com/our-people-results?pagenum=1&sortingqs=Last%20name&pagesize=500&loadCategories=true&param_sitecontentcategory=OUR%20PEOPLE&"
@@ -59,17 +106,5 @@
 ;;                     :positions-xpath "//ul[@id='divPeopleListing']//p[@class='position-loc']/span"
 ;;                     :emails-xpath "//ul[@id='divPeopleListing']//p[@class='mail-id-image']/a"}))
 
-(scrape-single-page latham "https://www.lw.com/attorneyBioSearch.aspx?titleGroupName=Associate&peopleViewMode=ListView&esmode=1" driver)
-
-(defn- scrape-location-lawyers-page [driver]
-  (let [name-elements (.findElementsByXPath driver name-elements-xpath)
-        url-elements (.findElementsByXPath driver url-elements-xpath)
-        role-elements (.findElementsByXPath driver role-elements-xpath)
-        email-elements (.findElementsByXPath driver email-elements-xpath)
-        names (doall (map #(fix-name (.getText %)) name-elements))
-        urls (doall (map #(.getAttribute % "href") url-elements))
-        roles (doall (map #(.getText %) role-elements))
-        emails (doall (map #(.getText %) email-elements))]
-    (mapv (fn [name url position email]
-            (merge name (assoc {} :url url :position position :email email)))
-          names urls roles emails)))
+;; (def driver (create-driver))
+;; (scrape-single-page baker-mckenzie "http://www.bakermckenzie.com/ourpeople/List.aspx?regions=b5eb49ce-aa94-4658-bcd9-001b1fb80f4f&offices=" driver)
