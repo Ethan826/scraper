@@ -14,6 +14,7 @@
     :positions-xpath "//div[@class='atty_title']"
     :urls-xpath "//div[@class='atty_name']/a"
     :emails-xpath "//div[@class='atty_email']/a"
+    :emails-selector "href"
     :names-function fix-firstname-lastname
     :emails-function bm-email-fixer
     :positions-function identity

@@ -1,6 +1,5 @@
 (ns scraper.helpers)
 
-
 (defn fix-lastname-firstname [the-name]
   "Given a name of the form 'Doe, John W', return a map with :first-name
    :middle-initial :last-name."
@@ -8,7 +7,7 @@
         [last-name _ _ first-name _ middle-initial] (rest (re-find name-fixer-regex the-name))]
     {:last-name last-name :first-name first-name :middle-initial middle-initial}))
 
-(defn- fix-firstname-lastname [the-name]
+(defn fix-firstname-lastname [the-name]
   "Given a name of the form 'John W. Doe', return a map with :first-name
    :middle-initial :last-name."
   (let [handle-parens

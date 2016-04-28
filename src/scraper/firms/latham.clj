@@ -7,6 +7,7 @@
               :positions-xpath "//table[@id='PeopleList']/tbody/tr/td[2]"
               :emails-xpath "//table[@id='PeopleList']/tbody/tr/td[3]/a"
               :urls-xpath "//table[@id='PeopleList']/tbody/tr/td[1]/a"
+              :emails-selector "href"
               :names-function fix-lastname-firstname
               :emails-function fix-email
               :positions-function identity

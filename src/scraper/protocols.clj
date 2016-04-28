@@ -3,13 +3,13 @@
            [org.openqa.selenium.firefox FirefoxDriver]
            [org.openqa.selenium.support.ui ExpectedConditions WebDriverWait]))
 
-(defn- create-driver []
-  (FirefoxDriver.)
+(defn create-driver []
+  (FirefoxDriver.))
 
 (defprotocol Scraper
   (scrape-single-page [this url driver]))
 
-(defrecord FirmWebsite [names-xpath urls-xpath positions-xpath emails-xpath
+(defrecord FirmWebsite [names-xpath urls-xpath positions-xpath emails-xpath emails-selector
                         names-function emails-function positions-function urls-function])
 
 (extend-protocol Scraper
