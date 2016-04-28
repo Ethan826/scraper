@@ -48,41 +48,39 @@
               :positions-function identity
               :urls-function identity}))
 
-(defn- fix-firstname-lastname [the-name]
-  (let [re-result (map first (re-seq #"(\w+(-\w+)?)" the-name))
-        result {:first-name (first re-result)}]
-    (if (= 2 (count re-result))
-      (assoc result :last-name (last re-result) :middle-initial nil)
-      (if (= 1 (count (second re-result)))
-        (assoc result :last-name (last re-result) :middle-initial (second re-result))
-        (assoc result :last-name (clojure.string/join " " (rest re-result)) :middle-initial nil)))))
 
+(defn- fix-firstname-lastname [the-name]
+  (let [handle-parens
+        (if (re-find #"\(.*\)" the-name) ; "Matthew (Matt) Smith => Matt Smith"
+          (apply str (rest (re-find #"\((.*)\)(.*)" the-name)))
+          the-name)
+        re-result (map first (re-seq #"(\w+(-\w+)?)" handle-parens))
+        result {:first-name (first re-result)}]
+    (if (= 2 (count re-result)) ; firstname lastname
+      (assoc result :last-name (last re-result) :middle-initial nil)
+      (if (= 1 (count (second re-result))) ; firstname mi lastname
+        (assoc result :last-name (last re-result) :middle-initial (second re-result))
+                                        ; firstname two lastnames
+        (assoc result :last-name (clojure.string/join " " (rest re-result)) :middle-initial nil)))))
 
 (defn- bm-email-fixer [email]
   email)
-  ;; (str
-  ;;  (clojure.string/lower-case
-  ;;   (re-find #"(?<=').*?(?=')" email))
-  ;;  "@bakermckenzie.com"))
+;; (str
+;;  (clojure.string/lower-case
+;;   (re-find #"(?<=').*?(?=')" email))
+;;  "@bakermckenzie.com"))
 
 (def baker-mckenzie (map->FirmWebsite
                      {:names-xpath "//div[@class='atty_name']"
                       :positions-xpath "//div[@class='atty_title']"
-                      :urls-xpath "//div[@class='atty_name']"
+                      :urls-xpath "//div[@class='atty_name']/a"
                       :emails-xpath "//div[@class='atty_email']"
                       :names-function fix-firstname-lastname
                       :emails-function bm-email-fixer
                       :positions-function identity
                       :urls-function identity}))
 
-(.getText (.findElementByXPath driver "//div[@class='atty_name']"))
-
-
-(re-seq #"(\w+(-\w+)?)" "Narendra Acharya")
-(re-seq #"(\w+(-\w+)?)" "Kathleen A. Acharya")
-(re-seq #"(\w+(-\w+)?)" "Christine Agnew Acharya")
-(re-seq #"(\w+(-\w+)?)" "Bogdan-Alexandru Acharya")
-
+;; (.getText (.findElementByXPath driver "//div[@class='atty_name']"))
 
 (deftest fix-firstname-lastname-test
   (is (= (fix-firstname-lastname "Narendra Acharya")
@@ -95,6 +93,8 @@
          {:last-name "Albu" :first-name "Bogdan-Alexandru" :middle-initial nil}))
   (is (= (fix-firstname-lastname "Fritz Boot-Strap")
          {:last-name "Boot-Strap" :first-name "Fritz" :middle-initial nil}))
+  (is (= (fix-firstname-lastname "Matthew (Matt) C. Alshouse")
+         {:last-name "Alshouse" :first-name "Matt" :middle-initial "C"}))
   (is (= (fix-firstname-lastname "Cinna-Bon Fiddle-Sticks")
          {:last-name "Fiddle-Sticks" :first-name "Cinna-Bon" :middle-initial nil})))
 
