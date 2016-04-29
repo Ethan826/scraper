@@ -56,9 +56,20 @@
           firms ["Salt n' Peppa" "Bingham McCutcheon"]]
       (do
         (sut/add-firms firm)
-        (is (has-item? firm sut/*db* "firms" "name"))
+        (is (has-item? firm sut/*db* sut/firms-table-name sut/firms-name-column))
         (sut/add-firms firms)
-        (is (has-item? (first firms) sut/*db* "firms" "name"))
-        (is (has-item? (second firms) sut/*db* "firms" "name"))))))
+        (is (has-item? (first firms) sut/*db* sut/firms-table-name sut/firms-name-column))
+        (is (has-item? (second firms) sut/*db* sut/firms-table-name sut/firms-name-column))))))
+
+(deftest add-positions-test
+  (binding [sut/*db* test-db]
+    (let [position "Associate"
+          positions ["Partner" "Of Counsel"]]
+      (do
+        (sut/add-positions position)
+        (is (has-item? position sut/*db* sut/positions-table-name sut/positions-position-column))
+        (sut/add-positions positions)
+        (is (has-item? (first positions) sut/*db* sut/positions-table-name sut/positions-position-column))
+        (is (has-item? (second positions) sut/*db* sut/positions-table-name sut/positions-position-column))))))
 
 (use-fixtures :each setup-db)

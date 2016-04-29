@@ -3,7 +3,9 @@
             [clojure.test :refer :all]))
 
 (def firms-table-name "firms")
+(def firms-name-column "name")
 (def positions-table-name "positions")
+(def positions-position-column "position")
 (def lawyers-table-name "lawyers")
 
 (def ^:dynamic *db*
@@ -15,11 +17,16 @@
      :subname (str "//" db-host ":" db-port "/" db-name)
      :user "postgres"}))
 
-(defn add-firms [firm-names]
-  (condp instance? firm-names
-    java.lang.String (j/insert! *db* (keyword firms-table-name) {:name firm-names})
+(defn- add-helper [input table column]
+  (condp instance? input
+    java.lang.String (j/insert! *db* (keyword table) {(keyword column) input})
     clojure.lang.Sequential (j/insert-multi!
                              *db*
-                             (keyword firms-table-name)
-                             (map #(assoc {} :name %) firm-names))))
+                             (keyword table)
+                             (map #(assoc {} (keyword column) %) input))))
 
+(defn add-firms [firm-names]
+  (add-helper firm-names firms-table-name firms-name-column))
+
+(defn add-positions [position]
+  (add-helper position positions-table-name positions-position-column))
