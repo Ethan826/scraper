@@ -16,7 +16,7 @@
         positions-sql (j/create-table-ddl
                        (keyword sut/positions-table-name)
                        [[:id :serial :primary :key]
-                        [:position :text :not :null]])
+                        [:position :text :unique :not :null]])
         lawyers-sql (j/create-table-ddl
                      (keyword sut/lawyers-table-name)
                      [[:id :serial :primary :key]
@@ -45,7 +45,6 @@
     (-> (j/query db [sql-string item])
         count
         pos?)))
-
 
 (deftest add-firms-test
   (binding [sut/*db* test-db]
@@ -76,5 +75,14 @@
    :email "jmarshall@scotus.gov"
    :position "Chief Justice"
    :firm "SCOTUS"})
+
+;; (up-fixture)
+;; (down-fixture)
+;; (j/execute! test-db "insert or ignore into positions(position) values ('Associate')")
+
+(deftest add-or-ignore-with-id-test
+  (is (= (sut/add-or-ignore-with-id "Jenner" sut/firms-table-name sut/firms-name-column) 1))
+  (is (= (sut/add-or-ignore-with-id "Kelley" sut/firms-table-name sut/firms-name-column) 2))
+  (is (= (sut/add-or-ignore-with-id "Jenner" sut/firms-table-name sut/firms-name-column) 1)))
 
 (use-fixtures :each setup-db)

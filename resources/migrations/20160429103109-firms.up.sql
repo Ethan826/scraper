@@ -1,4 +1,4 @@
 CREATE TABLE IF NOT EXISTS firms(
-       id serial primary key,
+       id integer primary key,
        name text unique not null
 );

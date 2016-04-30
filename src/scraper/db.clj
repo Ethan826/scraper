@@ -26,3 +26,12 @@
 
 (defn add-positions [position]
   (add-helper position positions-table-name positions-position-column))
+
+;; (j/execute! test-db "insert or ignore into positions(position) values ('Associate')")
+
+;; (def ^{:private true} sql-string-lookup  ; To avoid SQL injection
+;;   {""}
+;;   )
+
+(defn add-or-ignore-with-id [input table column]
+  ())
