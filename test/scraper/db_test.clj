@@ -4,13 +4,9 @@
             [clojure.test :refer :all]))
 
 (def ^{:private true} test-db
-  (let [db-host "localhost"
-        db-port 5432
-        db-name "test"]
-    {:classname "org.postgresql.Driver"
-     :subprotocol "postgresql"
-     :subname (str "//" db-host ":" db-port "/" db-name)
-     :user "postgres"}))
+  {:classname "org.sqlite.JDBC"
+   :subprotocol "sqlite"
+   :subname "test/database.db"})
 
 (defn- up-fixture []
   (let [firms-sql (j/create-table-ddl
@@ -26,6 +22,7 @@
                      [[:id :serial :primary :key]
                       [:firstname :text :not :null]
                       [:lastname :text :not :null]
+                      [:middleinitial :text]
                       [:email :text :not :null]
                       [:position :integer :not :null "references positions(id)"]
                       [:firm :integer :not :null "references firms(id)"]])]
@@ -44,11 +41,11 @@
   (down-fixture))
 
 (defn- has-item? [item db table column]
-  (let [sql-string (str "select count(*) from " table " where " column " = ?")] ; DANGER! SQL Injection. Used only in tests.
+  (let [sql-string (str "select * from " table " where " column " = ?")] ; DANGER! SQL Injection. Used only in tests.
     (-> (j/query db [sql-string item])
-        first
-        :count
+        count
         pos?)))
+
 
 (deftest add-firms-test
   (binding [sut/*db* test-db]
@@ -71,5 +68,13 @@
         (sut/add-positions positions)
         (is (has-item? (first positions) sut/*db* sut/positions-table-name sut/positions-position-column))
         (is (has-item? (second positions) sut/*db* sut/positions-table-name sut/positions-position-column))))))
+
+(def ^{:private true} one-lawyer
+  {:firstname "John"
+   :lastname "Marshall"
+   :middleinitial nil
+   :email "jmarshall@scotus.gov"
+   :position "Chief Justice"
+   :firm "SCOTUS"})
 
 (use-fixtures :each setup-db)

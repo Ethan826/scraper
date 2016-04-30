@@ -9,13 +9,9 @@
 (def lawyers-table-name "lawyers")
 
 (def ^:dynamic *db*
-  (let [db-host "localhost"
-        db-port 5432
-        db-name "relationship_partner"]
-    {:classname "org.postgresql.Driver"
-     :subprotocol "postgresql"
-     :subname (str "//" db-host ":" db-port "/" db-name)
-     :user "postgres"}))
+    {:classname "org.sqlite.JDBC"
+     :subprotocol "sqlite"
+     :subname "resources/database.db"})
 
 (defn- add-helper [input table column]
   (condp instance? input
