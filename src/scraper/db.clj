@@ -1,34 +1,32 @@
 (ns scraper.db
-  (:require [clojure.java.jdbc :as j]
-            [clojure.test :refer :all]))
+  (:require [hugsql.core :as h]
+            [clojure.set :as set])
+  (:import [scraper.protocols Lawyer]))
 
-(def firms-table-name "firms")
-(def firms-name-column "name")
-(def positions-table-name "positions")
-(def positions-position-column "position")
-(def lawyers-table-name "lawyers")
+(h/def-db-fns "queries.sql")
+(h/def-sqlvec-fns "queries.sql")
 
 (def ^:dynamic *db*
-    {:classname "org.sqlite.JDBC"
-     :subprotocol "sqlite"
-     :subname "resources/database.db"})
+  {:classname "org.h2.Driver"
+   :subprotocol "h2"
+   :subname (str "file://" (System/getProperty "user.dir") "/resources/relationship_partner.db")})
 
-(defn- add-helper [input table column]
-  (condp instance? input
-    java.lang.String (j/insert! *db* (keyword table) {(keyword column) input})
-    clojure.lang.Sequential (j/insert-multi!
-                             *db*
-                             (keyword table)
-                             (map #(assoc {} (keyword column) %) input))))
+(defn get-firms-and-positions [lawyers]
+  (reduce
+   (fn [accum el]
+     (assoc
+      accum
+      :firms (conj (:firms accum) (:firm-name el))
+      :positions (conj (:positions accum) (:position el))))
+   {:firms #{} :positions #{}}
+   lawyers))
 
-(defn add-firms [firm-names]
-  (add-helper firm-names firms-table-name firms-name-column))
+(defn add-new-firms-and-positions [lawyers]
+  (let [new-firms-and-positions (get-firms-and-positions lawyers)
+        existing-positions (set (map :position (get-all-positions *db*)))
+        existing-firms (set (map :name (get-all-firm-names *db*)))
+        new-positions (set/difference (:positions new-firms-and-positions) existing-positions)
+        new-firms (set/difference (:firms new-firms-and-positions) existing-firms)]
+    (insert-firms *db* {:firms (map list new-firms)})
+    (insert-positions *db* {:positions (map list new-positions)})))
 
-(defn add-positions [position]
-  (add-helper position positions-table-name positions-position-column))
-
-(defn add-or-ignore-with-id [input table column]
-  (let [insert-string (str "INSERT OR IGNORE INTO " table "(" column ") VALUES (?)")
-        query-string (str "SELECT * FROM " table " where " column " = ?")]
-    (j/execute! *db* [insert-string input])
-    (-> (j/query *db* [query-string input]) first :id)))  ; Does not appear to risk SQL injections because no user input

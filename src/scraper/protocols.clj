@@ -28,3 +28,8 @@
       (mapv (fn [name url position email]
               (merge name (assoc {} :url url :position position :email email)))
             names urls positions emails))))
+
+(defrecord Lawyer [first-name last-name middle-initial email position firm])
+
+(defn create-lawyer [m]
+  (map->Lawyer m))

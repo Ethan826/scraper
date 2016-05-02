@@ -1,88 +1,81 @@
 (ns scraper.db-test
   (:require [scraper.db :as sut]
+            [scraper.protocols :refer [create-lawyer]]
+            [hugsql.core :as h]
             [clojure.java.jdbc :as j]
-            [clojure.test :refer :all]))
+            [clojure.test :refer :all])
+  (:import [scraper.protocols Lawyer]))
 
-(def ^{:private true} test-db
-  {:classname "org.sqlite.JDBC"
-   :subprotocol "sqlite"
-   :subname "test/database.db"})
+(def ^{:private true} queries-path "queries.sql")
+
+(def ^:dynamic test-db
+  {:classname "org.h2.Driver"
+   :subprotocol "h2"
+   :subname (str "file://" (System/getProperty "user.dir") "/test/test.db")})
 
 (defn- up-fixture []
-  (let [firms-sql (j/create-table-ddl
-                   (keyword sut/firms-table-name)
-                   [[:id :serial :primary :key]
-                    [:name :text :not :null]])
-        positions-sql (j/create-table-ddl
-                       (keyword sut/positions-table-name)
-                       [[:id :serial :primary :key]
-                        [:position :text :unique :not :null]])
-        lawyers-sql (j/create-table-ddl
-                     (keyword sut/lawyers-table-name)
-                     [[:id :serial :primary :key]
-                      [:firstname :text :not :null]
-                      [:lastname :text :not :null]
-                      [:middleinitial :text]
-                      [:email :text :not :null]
-                      [:position :integer :not :null "references positions(id)"]
-                      [:firm :integer :not :null "references firms(id)"]])]
-    (j/execute! test-db firms-sql)
-    (j/execute! test-db positions-sql)
-    (j/execute! test-db lawyers-sql)))
+  (h/def-db-fns queries-path)
+  (create-positions-table test-db)
+  (create-firms-table test-db)
+  (create-lawyers-table test-db))
 
-(defn- down-fixture [] ; SQL Injection risk if used outside of test suite.
-  (j/execute! test-db (str "drop table if exists " sut/lawyers-table-name))
-  (j/execute! test-db (str "drop table if exists " sut/positions-table-name))
-  (j/execute! test-db (str "drop table if exists " sut/firms-table-name)))
+(defn- down-fixture []
+  (drop-lawyers-table test-db)
+  (drop-firms-table test-db)
+  (drop-positions-table test-db))
 
 (defn- setup-db [f]
   (up-fixture)
   (f)
   (down-fixture))
 
-(defn- has-item? [item db table column]
-  (let [sql-string (str "select * from " table " where " column " = ?")] ; DANGER! SQL Injection. Used only in tests.
-    (-> (j/query db [sql-string item])
-        count
-        pos?)))
-
-(deftest add-firms-test
-  (binding [sut/*db* test-db]
-    (let [firm "Dewey Cheatem & Howe"
-          firms ["Salt n' Peppa" "Bingham McCutcheon"]]
-      (do
-        (sut/add-firms firm)
-        (is (has-item? firm sut/*db* sut/firms-table-name sut/firms-name-column))
-        (sut/add-firms firms)
-        (is (has-item? (first firms) sut/*db* sut/firms-table-name sut/firms-name-column))
-        (is (has-item? (second firms) sut/*db* sut/firms-table-name sut/firms-name-column))))))
-
-(deftest add-positions-test
-  (binding [sut/*db* test-db]
-    (let [position "Associate"
-          positions ["Partner" "Of Counsel"]]
-      (do
-        (sut/add-positions position)
-        (is (has-item? position sut/*db* sut/positions-table-name sut/positions-position-column))
-        (sut/add-positions positions)
-        (is (has-item? (first positions) sut/*db* sut/positions-table-name sut/positions-position-column))
-        (is (has-item? (second positions) sut/*db* sut/positions-table-name sut/positions-position-column))))))
-
-(def ^{:private true} one-lawyer
-  {:firstname "John"
-   :lastname "Marshall"
-   :middleinitial nil
+(def ^{:private true} lawyer-1
+  {:first-name "John"
+   :last-name "Marshall"
+   :middle-initial nil
    :email "jmarshall@scotus.gov"
-   :position "Chief Justice"
-   :firm "SCOTUS"})
+   :firm-name "SCOTUS"
+   :position "Chief Justice"})
 
-;; (up-fixture)
+(def ^{:private true} lawyer-2
+  {:first-name "Joseph"
+   :last-name "Story"
+   :middle-initial "J"
+   :email "jstory@scotus.gov"
+   :firm-name "SCOTUS"
+   :position "Associate Justice"})
+
+(def ^{:private true} lawyer-3
+  {:first-name "Ethan"
+   :last-name "Kent"
+   :middle-initial "E"
+   :email "ekent@jenner.com"
+   :firm-name "Jenner & Block"
+   :position "Associate"})
+
+(deftest get-firms-and-positions-test
+  (is (= {:firms #{"SCOTUS" "Jenner & Block"}
+          :positions #{"Chief Justice" "Associate Justice" "Associate"}}
+         (sut/get-firms-and-positions [lawyer-1 lawyer-2 lawyer-3]))))
+
+(deftest add-new-firms-and-positions-test
+  (binding [sut/*db* test-db]
+    (insert-position test-db {:position "Associate"})
+    (insert-firm test-db {:name "SCOTUS"})
+    (sut/add-new-firms-and-positions [lawyer-1 lawyer-2 lawyer-3])
+    (let [positions (set (map :position (get-all-positions test-db)))]
+      (is (= positions
+             #{"Chief Justice" "Associate Justice" "Associate"})))))
+
+
 ;; (down-fixture)
+;; (up-fixture)
 
-(deftest add-or-ignore-with-id-test
-  (is (= (sut/add-or-ignore-with-id "Jenner" sut/firms-table-name sut/firms-name-column) 1))
-  (is (= (sut/add-or-ignore-with-id "Kelley" sut/firms-table-name sut/firms-name-column) 2))
-  (is (= (sut/add-or-ignore-with-id "Jenner" sut/firms-table-name sut/firms-name-column) 1))
-  (is (= (sut/add-or-ignore-with-id "Associate" sut/positions-table-name sut/positions-position-column) 1)))
+;; (insert-position test-db {:position "Associate"})
+;; (insert-firm test-db {:name "Jenner & Block"})
+;; (set (map :position (get-all-positions test-db)))
+
+;; (binding [sut/*db* test-db]
+;;   (sut/add-new-firms-and-positions [lawyer-1 lawyer-2 lawyer-3]))
 
 (use-fixtures :each setup-db)
