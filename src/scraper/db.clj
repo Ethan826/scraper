@@ -3,9 +3,6 @@
             [clojure.set :as set])
   (:import [scraper.protocols Lawyer]))
 
-(h/def-db-fns "queries.sql")
-(h/def-sqlvec-fns "queries.sql")
-
 (def ^:dynamic *db*
   {:classname "org.h2.Driver"
    :subprotocol "h2"
