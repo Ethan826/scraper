@@ -27,11 +27,8 @@
 (defn add-positions [position]
   (add-helper position positions-table-name positions-position-column))
 
-;; (j/execute! test-db "insert or ignore into positions(position) values ('Associate')")
-
-;; (def ^{:private true} sql-string-lookup  ; To avoid SQL injection
-;;   {""}
-;;   )
-
 (defn add-or-ignore-with-id [input table column]
-  ())
+  (let [insert-string (str "INSERT OR IGNORE INTO " table "(" column ") VALUES (?)")
+        query-string (str "SELECT * FROM " table " where " column " = ?")]
+    (j/execute! *db* [insert-string input])
+    (-> (j/query *db* [query-string input]) first :id)))  ; Does not appear to risk SQL injections because no user input

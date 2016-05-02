@@ -78,11 +78,11 @@
 
 ;; (up-fixture)
 ;; (down-fixture)
-;; (j/execute! test-db "insert or ignore into positions(position) values ('Associate')")
 
 (deftest add-or-ignore-with-id-test
   (is (= (sut/add-or-ignore-with-id "Jenner" sut/firms-table-name sut/firms-name-column) 1))
   (is (= (sut/add-or-ignore-with-id "Kelley" sut/firms-table-name sut/firms-name-column) 2))
-  (is (= (sut/add-or-ignore-with-id "Jenner" sut/firms-table-name sut/firms-name-column) 1)))
+  (is (= (sut/add-or-ignore-with-id "Jenner" sut/firms-table-name sut/firms-name-column) 1))
+  (is (= (sut/add-or-ignore-with-id "Associate" sut/positions-table-name sut/positions-position-column) 1)))
 
 (use-fixtures :each setup-db)
