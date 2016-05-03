@@ -9,11 +9,10 @@ CREATE TABLE IF NOT EXISTS positions(id INTEGER AUTO_INCREMENT PRIMARY KEY, posi
 -- :name create-lawyers-table :! :n
 -- :doc Create the lawyers table
 CREATE TABLE IF NOT EXISTS lawyers(
-    id INTEGER AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(255) NOT NULL PRIMARY KEY,
     firstname VARCHAR(255) NOT NULL,
     middleinitial VARCHAR(255),
     lastname VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL,
     firmname VARCHAR(255) NOT NULL,
     position VARCHAR(255) NOT NULL,
     FOREIGN KEY(position) REFERENCES positions(position),
@@ -64,7 +63,3 @@ SELECT * FROM firms WHERE name = :name
 -- :doc Insert a single lawyer
 INSERT INTO lawyers(firstname, middleinitial, lastname, email, firmname, position)
 VALUES (:first-name, :middle-initial, :last-name, :email, :firm-name, :position)
-
--- :name get-lawyer-by-name :? :1
--- :doc Get the first lawyer matching the supplied name
-SELECT * FROM lawyers WHERE lastname = :last-name AND firstname = :first-name

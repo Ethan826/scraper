@@ -8,6 +8,7 @@
    :subname (str "file://" (System/getProperty "user.dir") "/resources/relationship_partner.db")})
 
 (h/def-db-fns "queries.sql")
+(h/def-sqlvec-fns "queries.sql")
 
 (defn get-firms-and-positions [lawyers]
   (reduce
@@ -30,5 +31,28 @@
 
 (defn insert-lawyers-with-fks [lawyers]
   (add-new-firms-and-positions lawyers)
-  (insert-lawyer *db* (first lawyers)))
+  (insert-lawyers *db* ()))
 
+;; (def ^{:private true} lawyer-1
+;;   {:first-name "John"
+;;    :last-name "Marshall"
+;;    :middle-initial nil
+;;    :email "jmarshall@scotus.gov"
+;;    :firm-name "SCOTUS"
+;;    :position "Chief Justice"})
+
+;; (def ^{:private true} lawyer-2
+;;   {:first-name "Joseph"
+;;    :last-name "Story"
+;;    :middle-initial "J"
+;;    :email "jstory@scotus.gov"
+;;    :firm-name "SCOTUS"
+;;    :position "Associate Justice"})
+
+;; (def ^{:private true} lawyer-3
+;;   {:first-name "Ethan"
+;;    :last-name "Kent"
+;;    :middle-initial "E"
+;;    :email "ekent@jenner.com"
+;;    :firm-name "Jenner & Block"
+;;    :position "Associate"})

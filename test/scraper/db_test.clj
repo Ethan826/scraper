@@ -6,6 +6,8 @@
             [clojure.test :refer :all])
   (:import [scraper.protocols Lawyer]))
 
+(h/def-db-fns "queries.sql")
+
 (def ^{:private true} queries-path "queries.sql")
 
 (def ^:dynamic test-db
@@ -67,14 +69,13 @@
       (is (= positions
              #{"Chief Justice" "Associate Justice" "Associate"})))))
 
-;; (h/def-db-fns "queries.sql")
-
 (deftest insert-lawyers-with-fks-test
   (binding [sut/*db* test-db]
     (let [lawyers [lawyer-1 lawyer-2 lawyer-3]]
       (sut/insert-lawyers-with-fks [lawyer-3])
       (is (not (nil? (get-lawyer-by-name sut/*db* {:first-name "Ethan" :last-name "Kent"}))))
-      (is (not (nil? (get-firm-by-name sut/*db* {:name (:firm-name lawyer-3)})))))))
+      (is (not (nil? (get-firm-by-name sut/*db* {:name (:firm-name lawyer-3)}))))
+      (sut/insert-lawyers-with-fks lawyers))))
 
 ;; (down-fixture)
 ;; (up-fixture)
