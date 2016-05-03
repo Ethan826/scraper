@@ -64,3 +64,7 @@ SELECT * FROM firms WHERE name = :name
 -- :doc Insert a single lawyer
 INSERT INTO lawyers(firstname, middleinitial, lastname, email, firmname, position)
 VALUES (:first-name, :middle-initial, :last-name, :email, :firm-name, :position)
+
+-- :name get-lawyer-by-name :? :1
+-- :doc Get the first lawyer matching the supplied name
+SELECT * FROM lawyers WHERE lastname = :last-name AND firstname = :first-name

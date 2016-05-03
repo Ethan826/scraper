@@ -1,12 +1,13 @@
 (ns scraper.db
   (:require [hugsql.core :as h]
-            [clojure.set :as set])
-  (:import [scraper.protocols Lawyer]))
+            [clojure.set :as set]))
 
 (def ^:dynamic *db*
   {:classname "org.h2.Driver"
    :subprotocol "h2"
    :subname (str "file://" (System/getProperty "user.dir") "/resources/relationship_partner.db")})
+
+(h/def-db-fns "queries.sql")
 
 (defn get-firms-and-positions [lawyers]
   (reduce
@@ -26,4 +27,8 @@
         new-firms (set/difference (:firms new-firms-and-positions) existing-firms)]
     (insert-firms *db* {:firms (map list new-firms)})
     (insert-positions *db* {:positions (map list new-positions)})))
+
+(defn insert-lawyers-with-fks [lawyers]
+  (add-new-firms-and-positions lawyers)
+  (insert-lawyer *db* (first lawyers)))
 
