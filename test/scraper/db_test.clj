@@ -13,7 +13,8 @@
 (def ^:dynamic test-db
   {:classname "org.h2.Driver"
    :subprotocol "h2"
-   :subname (str "file://" (System/getProperty "user.dir") "/test/test.db")})
+   :subname (str "file://" (System/getProperty "user.dir") "/test/test.db")
+   :make-pool? true})
 
 (defn- up-fixture []
   (h/def-db-fns queries-path)
@@ -64,27 +65,30 @@
   (binding [sut/*db* test-db]
     (insert-position test-db {:position "Associate"})
     (insert-firm test-db {:name "SCOTUS"})
-    (sut/add-new-firms-and-positions [lawyer-1 lawyer-2 lawyer-3])
+    (sut/add-new-firms-and-positions [lawyer-1 lawyer-2])
+    (sut/add-new-firms-and-positions lawyer-3)
     (let [positions (set (map :position (get-all-positions test-db)))]
       (is (= positions
              #{"Chief Justice" "Associate Justice" "Associate"})))))
 
+(deftest insert-lawyers-test
+  (binding [sut/*db* test-db]
+    (let [lawyers [lawyer-1 lawyer-2]]
+      (sut/add-new-firms-and-positions lawyers)
+      (sut/insert-lawyers lawyers)
+      (is (not (empty? (sut/get-lawyer-by-email sut/*db* {:email (:email lawyer-1)}))))
+      (is (empty? (sut/get-lawyer-by-email sut/*db* {:email (:email lawyer-3)})))
+      (sut/add-new-firms-and-positions lawyer-3)
+      (sut/insert-lawyers lawyer-3)
+      (is (not (empty? (sut/get-lawyer-by-email sut/*db* {:email (:email lawyer-3)})))))))
+
 (deftest insert-lawyers-with-fks-test
   (binding [sut/*db* test-db]
-    (let [lawyers [lawyer-1 lawyer-2 lawyer-3]]
-      (sut/insert-lawyers-with-fks [lawyer-3])
-      (is (not (nil? (get-lawyer-by-name sut/*db* {:first-name "Ethan" :last-name "Kent"}))))
-      (is (not (nil? (get-firm-by-name sut/*db* {:name (:firm-name lawyer-3)}))))
-      (sut/insert-lawyers-with-fks lawyers))))
-
-;; (down-fixture)
-;; (up-fixture)
-
-;; (insert-position test-db {:position "Associate"})
-;; (insert-firm test-db {:name "Jenner & Block"})
-;; (set (map :position (get-all-positions test-db)))
-
-;; (binding [sut/*db* test-db]
-;;   (sut/add-new-firms-and-positions [lawyer-1 lawyer-2 lawyer-3]))
+    (let [lawyers [lawyer-1 lawyer-2]]
+      (sut/insert-lawyers-with-fks lawyer-3)
+      (is (not (nil? (sut/get-lawyer-by-email sut/*db* {:email "ekent@jenner.com"}))))
+      (is (nil? (sut/get-lawyer-by-email sut/*db* {:email "jstory@scotus.gov"})))
+      (sut/insert-lawyers-with-fks lawyers)
+      (is (not (nil? (sut/get-lawyer-by-email sut/*db* {:email "jstory@scotus.gov"})))))))
 
 (use-fixtures :each setup-db)

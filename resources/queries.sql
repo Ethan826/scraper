@@ -59,6 +59,10 @@ INSERT INTO positions(position) values :tuple*:positions
 -- :doc Get the first firm matching the supplied name
 SELECT * FROM firms WHERE name = :name
 
+-- :name get-lawyer-by-email :? :1
+-- :doc Get a lawyer by her email address
+SELECT * FROM lawyers WHERE email = :email
+
 -- :name insert-lawyer :! :n
 -- :doc Insert a single lawyer
 INSERT INTO lawyers(firstname, middleinitial, lastname, email, firmname, position)

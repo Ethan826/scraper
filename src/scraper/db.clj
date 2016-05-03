@@ -5,7 +5,8 @@
 (def ^:dynamic *db*
   {:classname "org.h2.Driver"
    :subprotocol "h2"
-   :subname (str "file://" (System/getProperty "user.dir") "/resources/relationship_partner.db")})
+   :subname (str "file://" (System/getProperty "user.dir") "/resources/relationship_partner.db")
+   :make-pool? true})
 
 (h/def-db-fns "queries.sql")
 (h/def-sqlvec-fns "queries.sql")
@@ -21,17 +22,24 @@
    lawyers))
 
 (defn add-new-firms-and-positions [lawyers]
-  (let [new-firms-and-positions (get-firms-and-positions lawyers)
+  (let [lawyers (if (sequential? lawyers) lawyers [lawyers])
+        new-firms-and-positions (get-firms-and-positions lawyers)
         existing-positions (set (map :position (get-all-positions *db*)))
         existing-firms (set (map :name (get-all-firm-names *db*)))
         new-positions (set/difference (:positions new-firms-and-positions) existing-positions)
         new-firms (set/difference (:firms new-firms-and-positions) existing-firms)]
-    (insert-firms *db* {:firms (map list new-firms)})
-    (insert-positions *db* {:positions (map list new-positions)})))
+    (if (empty? new-firms) nil (insert-firms *db* {:firms (map list new-firms)}))
+    (if (empty? new-positions) nil (insert-positions *db* {:positions (map list new-positions)}))))
+
+(defn insert-lawyers [lawyers]
+  (if (sequential? lawyers)
+      (doseq [lawyer lawyers]
+        (insert-lawyer *db* lawyer))
+      (insert-lawyer *db* lawyers)))
 
 (defn insert-lawyers-with-fks [lawyers]
   (add-new-firms-and-positions lawyers)
-  (insert-lawyers *db* ()))
+  (insert-lawyers lawyers))
 
 ;; (def ^{:private true} lawyer-1
 ;;   {:first-name "John"

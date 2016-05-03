@@ -7,3 +7,9 @@ SELECT * FROM positions [42102-191]
 2016-05-02 15:35:58 jdbc[3]: exception
 org.h2.jdbc.JdbcSQLException: Table "POSITIONS" not found; SQL statement:
 SELECT * FROM positions [42102-191]
+2016-05-03 12:56:34 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLException: Table "POSITIONS" not found; SQL statement:
+SELECT * FROM positions [42102-191]
+2016-05-03 12:56:43 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLException: Table "POSITIONS" not found; SQL statement:
+SELECT * FROM positions [42102-191]
